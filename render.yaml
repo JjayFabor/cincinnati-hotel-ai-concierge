@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: cincinnati-hotel-chatbot
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: N8N_WEBHOOK_BASE_URL
+        value: https://jjayfabor.app.n8n.cloud/webhook
+      - key: N8N_SHARED_SECRET
+        sync: false
