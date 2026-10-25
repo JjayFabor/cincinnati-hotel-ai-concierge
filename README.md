@@ -6,7 +6,7 @@ A production-ready hotel information chatbot. Guests chat with an AI concierge t
 |---|---|
 | Frontend | React 18 + Vite, React Router, hand-built CSS (no UI kit) |
 | Backend | Node.js 22 + Express (API, validation, rate limiting, Server-Sent Events) |
-| AI & automation | **n8n** — 4 published workflows (ingest, chat, contact hand-off, stats) |
+| AI & automation | **n8n** — one workflow, *Cincinnati Hotel — AI Concierge*, with 4 webhook pipelines (ingest, chat, contact hand-off, stats) + a demo-reset trigger |
 | LLM | OpenAI `gpt-5-mini` via n8n's OpenAI Chat Model node |
 | Storage | n8n Data Tables (knowledge chunks, document record, questions, leads) |
 | Email | Gmail node in n8n |
@@ -29,7 +29,7 @@ flowchart LR
     SSE[(SSE hub +<br/>stats cache)]
   end
 
-  subgraph n8n["n8n Cloud"]
+  subgraph n8n["n8n Cloud · Cincinnati Hotel — AI Concierge workflow"]
     W1[Ingest PDF]
     W2[Chat]
     W3[Contact Request]
@@ -73,6 +73,7 @@ cincinnati-hotel/
 │       ├── components/ ContactForm.jsx, Charts.jsx, Brand.jsx
 │       ├── api.js      fetch/XHR helpers
 │       └── styles.css
+├── n8n/cincinnati-hotel-ai-concierge.json   The n8n workflow (importable)
 ├── sample/cincinnati-hotel-info.pdf   Sample hotel document for testing
 ├── render.yaml         One-click Render blueprint
 └── .env.example
@@ -82,14 +83,16 @@ cincinnati-hotel/
 
 ## 2. How the chatbot processes the PDF
 
-### Ingestion — workflow **“Cincinnati Hotel — Ingest PDF”**
+### Ingestion — pipeline **1 · Ingest PDF**
 1. Admin uploads a PDF in the dashboard. The backend checks size (≤ 15 MB) and the `%PDF-` magic bytes, then forwards the file to the n8n webhook `POST /webhook/cincinnati-hotel/ingest`.
 2. **Extract from File (PDF)** pulls the text from every page.
 3. **Clear Old Knowledge / Clear Old Document Record** wipe the previous data — this is how *“uploading a new file replaces the previous one”* is enforced.
 4. **Clean and Chunk Text** (Code node) normalizes whitespace and splits the text into ~1,400-character chunks along paragraph and sentence boundaries, with a 200-character overlap so facts that span a boundary are not lost. Image-only PDFs are rejected with a clear error.
 5. Chunks go into the `cincinnati_knowledge` Data Table; file name, page count, character count and chunk count go into `cincinnati_documents` (shown on the dashboard).
 
-### Answering — workflow **“Cincinnati Hotel — Chat”**
+Uploads arrive as multipart form data; n8n stores the file in the binary field `data0`, which the Extract node reads.
+
+### Answering — pipeline **2 · Chat**
 1. The backend sends `{ sessionId, message, history }` (last 8 turns) to `POST /webhook/cincinnati-hotel/chat`.
 2. **Load Knowledge Base** reads all chunks in order.
 3. **Retrieve Relevant Context** (Code node):
@@ -106,7 +109,7 @@ cincinnati-hotel/
 5. **Normalize Answer** is a safety net: no document → `answered=false`; unknown category → `General`; an apology answer is always flagged as unanswered.
 6. **Log Question for Stats** writes the question, answer, topic and answered flag to `cincinnati_questions`, then the webhook responds.
 
-### Unanswered → human hand-off — workflow **“Cincinnati Hotel — Contact Request”**
+### Unanswered → human hand-off — pipeline **3 · Contact hand-off**
 When `answered` is `false`, the chat shows the apology plus a **“Leave my contact details”** button. The form (Name, Phone, Email) is validated in the browser and again on the server, then sent to n8n with the full transcript and the unanswered question. n8n:
 1. has the LLM write a 2–4 sentence hand-off **summary of the conversation**;
 2. builds an HTML email with the guest's details, the highlighted **unanswered question**, the summary and the full transcript;
@@ -125,7 +128,7 @@ When `answered` is `false`, the chat shows the apology plus a **“Leave my cont
 
 **Real-time flow**
 1. The dashboard opens an `EventSource` on `/api/admin/events` (the “Live” badge shows the connection).
-2. After every chat answer, contact submission or upload, the backend immediately calls the **Stats** workflow, which aggregates the Data Tables and returns totals, per-topic counts, daily series, recent questions/leads and the active document.
+2. After every chat answer, contact submission or upload, the backend immediately calls the **4 · Stats** pipeline, which aggregates the Data Tables and returns totals, per-topic counts, daily series, recent questions/leads and the active document.
 3. The backend caches the result and pushes it to every connected dashboard as an SSE `stats` event, plus a small `activity` event that shows a toast (“New question · Rooms & Suites”).
 4. Refreshes are **coalesced** (one request in flight + one queued), so bursts of messages never flood n8n, yet the final state is always pushed. Statistics therefore update within about a second of each message — no polling.
 
@@ -135,14 +138,14 @@ When `answered` is `false`, the chat shows the apology plus a **“Leave my cont
 
 ### Prerequisites
 - Node.js ≥ 18.18 (22 recommended)
-- An n8n instance with the four workflows imported and **published**, a Gmail credential, and an OpenAI credential on the two “OpenAI … Model” nodes
+- An n8n instance with the workflow imported and **published**, a Gmail credential, and an OpenAI credential on the two “OpenAI … Model” nodes
 
 ### n8n setup (if reproducing on another instance)
-1. Create Data Tables `cincinnati_knowledge`, `cincinnati_documents`, `cincinnati_questions`, `cincinnati_leads` with the columns listed in section 5 (the workflows reference them by name).
-2. Import the four workflow JSON files from `n8n/` (Workflows → Import from file).
+1. Create Data Tables `cincinnati_knowledge`, `cincinnati_documents`, `cincinnati_questions`, `cincinnati_leads` with the columns listed in section 5 (the workflow references them by name).
+2. Import `n8n/cincinnati-hotel-ai-concierge.json` (Workflows → Import from file).
 3. Attach your OpenAI credential to the two “OpenAI … Model” nodes and a Gmail credential to “Email Customer Service”.
 4. In each Webhook node → Options → **Only run if**, replace `REPLACE_WITH_N8N_SHARED_SECRET` with your secret (requests without the matching `x-hotel-secret` header are ignored). Use the same value for `N8N_SHARED_SECRET` in the backend.
-5. Publish all four workflows.
+5. Publish the workflow.
 
 ### Local development
 ```bash
@@ -175,7 +178,8 @@ npm install && npm run build && npm start   # serves everything on $PORT
   4. “Can I bring my dog?” (not in the PDF) → apology + contact form → submit → email arrives at both addresses.
   5. Keep the Admin tab open during 2–4: KPIs, topic bars and the feed update immediately with a toast.
   6. Upload a different PDF → previous answers no longer apply (single-document rule).
-- **n8n:** every run is visible under each workflow's Executions tab, including the exact context and LLM output.
+- **Reset before a demo:** open the workflow and run the *Reset Demo Data (manual)* trigger to zero the dashboard (the PDF is kept).
+- **n8n:** every run is visible under the workflow's Executions tab, including the exact context and LLM output.
 
 ### API reference
 | Method | Path | Body / notes |
