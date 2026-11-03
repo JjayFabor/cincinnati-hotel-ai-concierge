@@ -623,7 +623,7 @@
       "parameters": {
         "resource": "message",
         "operation": "send",
-        "sendTo": "idan@tauga.ai, deleonajiraydiego@gmail.com",
+        "sendTo": "faborjaylordvhan@gmail.com",
         "subject": "={{ $json.subject }}",
         "emailType": "html",
         "message": "={{ $json.html }}",
@@ -756,7 +756,7 @@
         1600
       ],
       "parameters": {
-        "content": "## Cincinnati Hotel — Contact hand-off\nTriggered when a guest fills the contact form after the bot could not answer.\n- AI writes a short hand-off summary of the chat\n- HTML email (summary + unanswered question + full transcript) goes to idan@tauga.ai and deleonajiraydiego@gmail.com\n- Lead is stored in the cincinnati_leads table",
+        "content": "## Cincinnati Hotel — Contact hand-off\nTriggered when a guest fills the contact form after the bot could not answer.\n- AI writes a short hand-off summary of the chat\n- HTML email (summary + unanswered question + full transcript) goes to faborjaylordvhan@gmail.com\n- Lead is stored in the cincinnati_leads table",
         "color": 4,
         "width": 512,
         "height": 224

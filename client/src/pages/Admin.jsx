@@ -190,7 +190,7 @@ export default function Admin() {
           </section>
 
           <section className="card span-3">
-            <div className="card-head"><h2>Contact requests</h2><span className="muted small">Each one triggered an email to idan@tauga.ai and deleonajiraydiego@gmail.com</span></div>
+            <div className="card-head"><h2>Contact requests</h2><span className="muted small">Each one triggered an email to faborjaylordvhan@gmail.com</span></div>
             {stats?.recentLeads?.length ? (
               <ul className="feed leads">
                 {stats.recentLeads.map((l, i) => (
