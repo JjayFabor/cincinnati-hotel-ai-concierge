@@ -113,7 +113,7 @@ Uploads arrive as multipart form data; n8n stores the file in the binary field `
 When `answered` is `false`, the chat shows the apology plus a **“Leave my contact details”** button. The form (Name, Phone, Email) is validated in the browser and again on the server, then sent to n8n with the full transcript and the unanswered question. n8n:
 1. has the LLM write a 2–4 sentence hand-off **summary of the conversation**;
 2. builds an HTML email with the guest's details, the highlighted **unanswered question**, the summary and the full transcript;
-3. sends it via **Gmail** to `idan@tauga.ai` and `deleonajiraydiego@gmail.com` (Reply-To set to the guest);
+3. sends it via **Gmail** to `faborjaylordvhan@gmail.com` (Reply-To set to the guest);
 4. stores the lead in `cincinnati_leads`.
 
 ---
@@ -175,7 +175,7 @@ npm install && npm run build && npm start   # serves everything on $PORT
   1. Admin → upload `sample/cincinnati-hotel-info.pdf` → card shows pages/sections.
   2. Regular User → “What room types do you offer?” → answer with prices from the PDF.
   3. “Is there a pool?” → hours from the PDF. “How much is it on weekends?” after asking about a suite → follow-up resolved.
-  4. “Can I bring my dog?” (not in the PDF) → apology + contact form → submit → email arrives at both addresses.
+  4. “Can I bring my dog?” (not in the PDF) → apology + contact form → submit → email arrives in the hotel inbox.
   5. Keep the Admin tab open during 2–4: KPIs, topic bars and the feed update immediately with a toast.
   6. Upload a different PDF → previous answers no longer apply (single-document rule).
 - **Reset before a demo:** open the workflow and run the *Reset Demo Data (manual)* trigger to zero the dashboard (the PDF is kept).
